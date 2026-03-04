@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🦞 Token Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #10101d;
+    --bg-secondary: #1a1a2e;
+    --bg-card: rgba(30, 42, 71, 0.3);
+    --text-primary: #f0f0f5;
+    --text-secondary: #a0a0b8;
+    --text-muted: #6b6b80;
+    --border: rgba(255, 255, 255, 0.1);
+    --accent: #7B68EE;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--bg-primary);
+    background-image:
+      radial-gradient(circle at 10% 20%, rgba(123, 104, 238, 0.1), transparent 35%),
+      radial-gradient(circle at 90% 80%, rgba(123, 104, 238, 0.1), transparent 40%);
+    color: var(--text-primary);
+    min-height: 100vh;
+  }
+
+  .header {
+    padding: 28px 40px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .header h1 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -1px;
+  }
+
+  .header .meta {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .container {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 32px 40px;
+  }
+
+  /* Stat Cards */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+  }
+
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  }
+
+  .stat-card .label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 12px;
+  }
+
+  .stat-card .value {
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: -1.5px;
+    color: var(--text-primary);
+  }
+
+  .stat-card .sub {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+
+  /* Period toggle */
+  .period-toggle {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .period-toggle button {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 9px 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+
+  .period-toggle button.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    box-shadow: 0 0 15px rgba(123, 104, 238, 0.6);
+  }
+
+  .period-toggle button:hover:not(.active) {
+    border-color: var(--text-secondary);
+    color: var(--text-primary);
+  }
+
+  /* Charts */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 40px;
+  }
+
+  .chart-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  }
+
+   .chart-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  }
+
+  .chart-card h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+  }
+
+  .chart-card canvas {
+    max-height: 320px;
+  }
+
+  .chart-card.full-width {
+    grid-column: 1 / -1;
+  }
+
+  /* Summary table */
+  .summary-section {
+    margin-bottom: 32px;
+  }
+
+  .summary-section h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+  }
+
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .summary-table th, .summary-table td {
+    padding: 14px 20px;
+    text-align: right;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .summary-table th {
+    background: rgba(0,0,0,0.1);
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  
+  .summary-table tbody tr {
+    transition: background-color 0.15s ease;
+  }
+  
+  .summary-table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .summary-table td:first-child, .summary-table th:first-child {
+    text-align: left;
+    font-weight: 500;
+  }
+
+  .summary-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .model-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 10px;
+    vertical-align: middle;
+  }
+
+  .loading {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--text-muted);
+    font-size: 16px;
+  }
+
+  @media (max-width: 900px) {
+    .charts-grid { grid-template-columns: 1fr; }
+    .container { padding: 24px; }
+    .header { padding: 24px; }
+    .stat-card .value { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🦞 Token Dashboard</h1>
+  <div class="meta">
+    <span id="lastUpdated">Loading...</span>
+    <span style="margin: 0 8px;">·</span>
+    <span id="autoRefresh">Auto-refresh: 5m</span>
+  </div>
+</div>
+
+<div class="container">
+  <div id="loading" class="loading">Loading data...</div>
+
+  <div id="dashboard" style="display:none;">
+    <!-- Today's Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="label">Today's Tokens</div>
+        <div class="value" id="todayTokens">—</div>
+        <div class="sub" id="todayTokensSub"></div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Today's Cost</div>
+        <div class="value" id="todayCost">—</div>
+        <div class="sub" id="todayCostSub"></div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Today's Calls</div>
+        <div class="value" id="todayCalls">—</div>
+        <div class="sub" id="todayCallsSub"></div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Cache Hit Rate</div>
+        <div class="value" id="todayCache">—</div>
+        <div class="sub" id="todayCacheSub"></div>
+      </div>
+    </div>
+
+    <!-- Period Summary Cards -->
+    <div class="stats-grid" style="margin-bottom: 32px;">
+      <div class="stat-card">
+        <div class="label">Last 7 Days</div>
+        <div class="value" id="week7Cost">—</div>
+        <div class="sub" id="week7Sub"></div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Last 30 Days</div>
+        <div class="value" id="month30Cost">—</div>
+        <div class="sub" id="month30Sub"></div>
+      </div>
+    </div>
+
+    <!-- Period toggle -->
+    <div class="period-toggle">
+      <button class="active" data-days="30">Last 30 Days</button>
+      <button data-days="14">Last 14 Days</button>
+      <button data-days="7">Last 7 Days</button>
+      <button data-days="0">All Time</button>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid">
+      <div class="chart-card full-width" id="intradayCard">
+        <h3>Today's Tokens by Model (30-min intervals)</h3>
+        <canvas id="intradayChart"></canvas>
+      </div>
+      <div class="chart-card full-width">
+        <h3>Daily Token Usage by Model</h3>
+        <canvas id="tokenChart"></canvas>
+      </div>
+      <div class="chart-card full-width">
+        <h3>Daily Cost by Model</h3>
+        <canvas id="costByModelChart"></canvas>
+      </div>
+      <div class="chart-card full-width">
+        <h3>Daily Cost Trend</h3>
+        <canvas id="costChart"></canvas>
+      </div>
+      <div class="chart-card full-width">
+        <h3>Model Distribution (Tokens)</h3>
+        <canvas id="modelChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Model breakdown table -->
+    <div class="summary-section">
+      <h3>Model Breakdown (All Time)</h3>
+      <table class="summary-table" id="modelTable">
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Total Tokens</th>
+            <th>Input</th>
+            <th>Output</th>
+            <th>Cache Read</th>
+            <th>Cost</th>
+            <th>Calls</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const MODEL_COLORS = {
+  "Claude Opus 4.6":   "#7B68EE", // New Accent
+  "Claude Opus 4.5":   "#D97A54",
+  "Claude Opus 4.1":   "#C96841",
+  "Claude Sonnet 4.6": "#5B8FB9",
+  "Claude Sonnet 4.5": "#4A7EA8",
+  "Claude Sonnet 4":   "#3A6D97",
+  "GPT-5.3 Codex":     "#7EC8E3",
+  "Gemini 3 Pro":      "#B5E48C",
+  "Gemini 3 Flash":    "#8FD460",
+  "Gemini":            "#A0D878",
+  "Claude":            "#D4A5A5",
+  "GPT":               "#6BB8D6",
+  "Other":             "#9CA3AF",
+};
+
+function getModelColor(model) {
+  return MODEL_COLORS[model] || MODEL_COLORS["Other"];
+}
+
+function fmtTokens(n) {
+  if (n >= 1e9) return (n / 1e9).toFixed(1) + "B";
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + "M";
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + "K";
+  return n.toString();
+}
+
+function fmtCost(n) {
+  if (n >= 100) return "$" + n.toFixed(0);
+  if (n >= 10) return "$" + n.toFixed(1);
+  return "$" + n.toFixed(2);
+}
+
+function fmtNumber(n) {
+  return n.toLocaleString();
+}
+
+function fmtPercent(n) {
+  return (n * 100).toFixed(1) + "%";
+}
+
+function animateValue(element, start, end, duration, formatter) {
+  if (start === end) {
+    element.textContent = formatter(end);
+    return;
+  }
+  const range = end - start;
+  let startTime = null;
+  const animate = (currentTime) => {
+    if (!startTime) startTime = currentTime;
+    const progress = Math.min((currentTime - startTime) / duration, 1);
+    const current = start + range * progress;
+    element.textContent = formatter(current);
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      element.textContent = formatter(end);
+    }
+  };
+  requestAnimationFrame(animate);
+}
+
+let rawData = null;
+let intradayChart = null;
+let tokenChart = null;
+let costByModelChart = null;
+let costChart = null;
+let modelChart = null;
+let currentDays = 30;
+
+async function loadData() {
+  try {
+    const resp = await fetch("/data/daily_usage.json?" + Date.now());
+    rawData = await resp.json();
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("dashboard").style.display = "block";
+    renderAll();
+  } catch (e) {
+    document.getElementById("loading").textContent = "Failed to load data: " + e.message;
+  }
+}
+
+function renderAll() {
+  renderStats();
+  renderCharts();
+  renderTable();
+  document.getElementById("lastUpdated").textContent =
+    "Updated: " + new Date(rawData.generatedAt).toLocaleString("en-US", { timeZone: "Asia/Shanghai" });
+}
+
+function renderStats() {
+  const t = rawData.today;
+  animateValue(document.getElementById("todayTokens"), 0, t.totalTokens, 1500, fmtTokens);
+  animateValue(document.getElementById("todayCost"), 0, t.cost, 1500, fmtCost);
+  animateValue(document.getElementById("todayCalls"), 0, t.calls, 1500, fmtNumber);
+  animateValue(document.getElementById("todayCache"), 0, t.cacheHitRate, 1500, fmtPercent);
+
+  document.getElementById("todayTokensSub").textContent =
+    `In: ${fmtTokens(t.input)} · Out: ${fmtTokens(t.output)}`;
+  document.getElementById("todayCostSub").textContent =
+    `Cache saved: ${fmtTokens(t.cacheRead)} tokens`;
+  document.getElementById("todayCallsSub").textContent = "API calls today";
+  document.getElementById("todayCacheSub").textContent =
+    `${fmtTokens(t.cacheRead)} / ${fmtTokens(t.input + t.cacheRead)}`;
+
+  const w = rawData.last7Days;
+  animateValue(document.getElementById("week7Cost"), 0, w.cost, 1500, fmtCost);
+  document.getElementById("week7Sub").textContent =
+    `${fmtTokens(w.totalTokens)} tokens · ${fmtNumber(w.calls)} calls`;
+
+  const m = rawData.last30Days;
+  animateValue(document.getElementById("month30Cost"), 0, m.cost, 1500, fmtCost);
+  document.getElementById("month30Sub").textContent =
+    `${fmtTokens(m.totalTokens)} tokens · ${fmtNumber(m.calls)} calls`;
+}
+
+function filterByDays(data, days) {
+  if (days === 0) return data;
+  const now = new Date();
+  const cutoff = new Date(now.getTime() - days * 86400000);
+  const cutStr = cutoff.toISOString().slice(0, 10);
+  return data.filter(d => d.date >= cutStr);
+}
+
+function renderCharts() {
+  renderIntradayChart();
+  renderTokenChart();
+  renderCostByModelChart();
+  renderCostChart();
+  renderModelChart();
+}
+
+function renderIntradayChart() {
+  const intra = rawData.todayIntraday;
+  if (!intra || !intra.slots || Object.keys(intra.byModel).length === 0) {
+    document.getElementById("intradayCard").style.display = "none";
+    return;
+  }
+  document.getElementById("intradayCard").style.display = "";
+
+  const models = Object.keys(intra.byModel);
+  // Current slot: highlight up to now
+  const now = new Date();
+  const currentSlot = now.getHours() * 2 + Math.floor(now.getMinutes() / 30);
+
+  const datasets = models.map(model => ({
+    label: model,
+    data: intra.byModel[model].map((v, i) => i <= currentSlot ? v : null),
+    borderColor: getModelColor(model),
+    backgroundColor: getModelColor(model) + "22",
+    fill: true,
+    tension: 0.3,
+    pointRadius: 0,
+    pointHoverRadius: 5,
+    borderWidth: 2,
+  }));
+
+  const cfg = {
+    type: "line",
+    data: { labels: intra.slots, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { labels: { color: "#a0a0b8", usePointStyle: true, pointStyle: "circle", font: { size: 12 } } },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${fmtTokens(ctx.raw ?? 0)}`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          ticks: {
+            color: "#6b6b80",
+            maxTicksLimit: 24,
+            callback: (val, idx) => idx % 2 === 0 ? intra.slots[idx] : "",
+          },
+          grid: { color: "rgba(255,255,255,0.05)" },
+        },
+        y: {
+          stacked: true,
+          ticks: { color: "#6b6b80", callback: v => fmtTokens(v) },
+          grid: { color: "rgba(255,255,255,0.05)" },
+        },
+      },
+    },
+  };
+
+  if (intradayChart) {
+    intradayChart.data = cfg.data;
+    intradayChart.update();
+  } else {
+    const el = document.getElementById("intradayChart");
+    el.parentElement.style.height = "360px";
+    intradayChart = new Chart(el, cfg);
+  }
+}
+
+function renderTokenChart() {
+  const filtered = filterByDays(rawData.dailyByModel, currentDays);
+  const dates = [...new Set(filtered.map(d => d.date))].sort();
+  const models = [...new Set(filtered.map(d => d.model))];
+
+  const modelTokens = {};
+  filtered.forEach(d => {
+    modelTokens[d.model] = (modelTokens[d.model] || 0) + d.totalTokens;
+  });
+  models.sort((a, b) => (modelTokens[b] || 0) - (modelTokens[a] || 0));
+
+  const dateMap = {};
+  filtered.forEach(d => {
+    if (!dateMap[d.date]) dateMap[d.date] = {};
+    dateMap[d.date][d.model] = d.totalTokens;
+  });
+
+  const datasets = models.map(model => ({
+    label: model,
+    data: dates.map(date => (dateMap[date] || {})[model] || 0),
+    backgroundColor: getModelColor(model),
+    borderRadius: 4,
+    borderSkipped: false,
+  }));
+
+  const cfg = {
+    type: "bar",
+    data: { labels: dates.map(d => d.slice(5)), datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: "#a0a0b8", usePointStyle: true, pointStyle: "circle" } },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${fmtTokens(ctx.raw)}`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          stacked: true,
+          ticks: { color: "#6b6b80" },
+          grid: { color: "rgba(255,255,255,0.05)" },
+        },
+        y: {
+          stacked: true,
+          ticks: { color: "#6b6b80", callback: v => fmtTokens(v) },
+          grid: { color: "rgba(255,255,255,0.05)" },
+        },
+      },
+    },
+  };
+
+  if (tokenChart) {
+    tokenChart.data = cfg.data;
+    tokenChart.update();
+  } else {
+    const el = document.getElementById("tokenChart");
+    el.parentElement.style.height = "380px";
+    tokenChart = new Chart(el, cfg);
+  }
+}
+
+function renderCostByModelChart() {
+  const filtered = filterByDays(rawData.dailyByModel, currentDays);
+  const dates = [...new Set(filtered.map(d => d.date))].sort();
+  const models = [...new Set(filtered.map(d => d.model))];
+
+  const modelCosts = {};
+  filtered.forEach(d => {
+    modelCosts[d.model] = (modelCosts[d.model] || 0) + d.cost;
+  });
+  models.sort((a, b) => (modelCosts[b] || 0) - (modelCosts[a] || 0));
+
+  const dateMap = {};
+  filtered.forEach(d => {
+    if (!dateMap[d.date]) dateMap[d.date] = {};
+    dateMap[d.date][d.model] = d.cost;
+  });
+
+  const datasets = models.map(model => ({
+    label: model,
+    data: dates.map(date => (dateMap[date] || {})[model] || 0),
+    backgroundColor: getModelColor(model),
+    borderRadius: 4,
+    borderSkipped: false,
+  }));
+
+  const cfg = {
+    type: "bar",
+    data: { labels: dates.map(d => d.slice(5)), datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: "#a0a0b8", usePointStyle: true, pointStyle: "circle" } },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${fmtCost(ctx.raw)}`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          stacked: true,
+          ticks: { color: "#6b6b80" },
+          grid: { color: "rgba(255,255,255,0.05)" },
+        },
+        y: {
+          stacked: true,
+          ticks: { color: "#6b6b80", callback: v => "$" + v.toFixed(0) },
+          grid: { color: "rgba(255,255,255,0.05)" },
+        },
+      },
+    },
+  };
+
+  if (costByModelChart) {
+    costByModelChart.data = cfg.data;
+    costByModelChart.update();
+  } else {
+    const el = document.getElementById("costByModelChart");
+    el.parentElement.style.height = "380px";
+    costByModelChart = new Chart(el, cfg);
+  }
+}
+
+function renderCostChart() {
+  const filtered = filterByDays(rawData.dailyCost, currentDays);
+
+  const cfg = {
+    type: "line",
+    data: {
+      labels: filtered.map(d => d.date.slice(5)),
+      datasets: [{
+        label: "Daily Cost",
+        data: filtered.map(d => d.cost),
+        borderColor: "#7B68EE",
+        backgroundColor: "rgba(123, 104, 238, 0.15)",
+        fill: true,
+        tension: 0.4,
+        pointRadius: 2,
+        pointHoverRadius: 6,
+        pointBackgroundColor: "#7B68EE"
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: ctx => fmtCost(ctx.raw) },
+        },
+      },
+      scales: {
+        x: {
+          ticks: { color: "#6b6b80" },
+          grid: { color: "rgba(255,255,255,0.05)" },
+        },
+        y: {
+          ticks: { color: "#6b6b80", callback: v => "$" + v.toFixed(2) },
+          grid: { color: "rgba(255,255,255,0.05)" },
+        },
+      },
+    },
+  };
+
+  if (costChart) {
+    costChart.data = cfg.data;
+    costChart.update();
+  } else {
+    const el = document.getElementById("costChart");
+    el.parentElement.style.height = "380px";
+    costChart = new Chart(el, cfg);
+  }
+}
+
+function renderModelChart() {
+  const totals = rawData.modelTotals;
+
+  const cfg = {
+    type: "doughnut",
+    data: {
+      labels: totals.map(d => d.model),
+      datasets: [{
+        data: totals.map(d => d.totalTokens),
+        backgroundColor: totals.map(d => getModelColor(d.model)),
+        borderWidth: 0,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: "65%",
+      plugins: {
+        legend: {
+          position: "bottom",
+          labels: {
+            color: "#a0a0b8",
+            usePointStyle: true,
+            pointStyle: "circle",
+            padding: 20,
+            boxWidth: 8,
+          },
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+              const pct = ((ctx.raw / total) * 100).toFixed(1);
+              return `${ctx.label}: ${fmtTokens(ctx.raw)} (${pct}%)`;
+            },
+          },
+        },
+      },
+    },
+  };
+
+  if (modelChart) {
+    modelChart.data = cfg.data;
+    modelChart.update();
+  } else {
+    const el = document.getElementById("modelChart");
+    el.parentElement.style.height = "380px";
+    modelChart = new Chart(el, cfg);
+  }
+}
+
+function renderTable() {
+  const tbody = document.querySelector("#modelTable tbody");
+  tbody.innerHTML = "";
+
+  rawData.modelTotals.forEach(m => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><span class="model-dot" style="background:${getModelColor(m.model)}"></span>${m.model}</td>
+      <td>${fmtTokens(m.totalTokens)}</td>
+      <td>${fmtTokens(m.input)}</td>
+      <td>${fmtTokens(m.output)}</td>
+      <td>${fmtTokens(m.cacheRead)}</td>
+      <td>${fmtCost(m.cost)}</td>
+      <td>${fmtNumber(m.calls)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Total row
+  const total = rawData.modelTotals.reduce((acc, m) => {
+    acc.totalTokens += m.totalTokens;
+    acc.input += m.input;
+    acc.output += m.output;
+    acc.cacheRead += m.cacheRead;
+    acc.cost += m.cost;
+    acc.calls += m.calls;
+    return acc;
+  }, { totalTokens: 0, input: 0, output: 0, cacheRead: 0, cost: 0, calls: 0 });
+
+  const tr = document.createElement("tr");
+  tr.style.fontWeight = "600";
+  tr.style.color = "var(--text-primary)";
+  tr.innerHTML = `
+    <td>Total</td>
+    <td>${fmtTokens(total.totalTokens)}</td>
+    <td>${fmtTokens(total.input)}</td>
+    <td>${fmtTokens(total.output)}</td>
+    <td>${fmtTokens(total.cacheRead)}</td>
+    <td>${fmtCost(total.cost)}</td>
+    <td>${fmtNumber(total.calls)}</td>
+  `;
+  tbody.appendChild(tr);
+}
+
+// Period toggle
+document.querySelectorAll(".period-toggle button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelector(".period-toggle .active").classList.remove("active");
+    btn.classList.add("active");
+    currentDays = parseInt(btn.dataset.days);
+    renderCharts();
+  });
+});
+
+// Initial load and auto-refresh
+loadData();
+setInterval(loadData, 5 * 60 * 1000);
+</script>
+</body>
+</html>

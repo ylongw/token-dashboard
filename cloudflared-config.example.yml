@@ -1,0 +1,9 @@
+# Cloudflare Tunnel config for token-dashboard
+# Replace TUNNEL_ID with your actual tunnel ID from ~/.cloudflared/
+tunnel: <TUNNEL_ID>
+credentials-file: ~/.cloudflared/<TUNNEL_ID>.json
+
+ingress:
+  - hostname: your-dashboard.example.com
+    service: http://localhost:8901
+  - service: http_status:404
